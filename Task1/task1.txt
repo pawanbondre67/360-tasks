@@ -1,0 +1,71 @@
+1. Database Query Optimization
+Scenario: You have a PostgreSQL database with a users table and an orders table. The 
+orders table has a foreign key reference to the users table. Write a SQL query to fetch the 
+top 5 users with the highest total order amount in the last month. Assume that the orders
+table has columns user_id, amount, and order_date.
+Requirements:
+● Write the SQL query.
+● Explain how you would index the tables to optimise the query.
+
+
+
+ ANS-->
+
+1. SQL Query to Fetch Top 5 Users with the Highest Total Order Amount in the Last Month
+
+To get the top 5 users based on their total order amount in the last month, you would write the following SQL query:
+
+
+SELECT 
+    u.user_id,
+    u.name, -- Assuming the users table has a name column
+    SUM(o.amount) AS total_order_amount
+FROM 
+    users u
+JOIN 
+    orders o ON u.user_id = o.user_id
+WHERE 
+    o.order_date >= (CURRENT_DATE - INTERVAL '1 month')
+GROUP BY 
+    u.user_id, u.name
+ORDER BY 
+    total_order_amount DESC
+LIMIT 5;
+
+
+
+2. Indexing the Tables to Optimize the Query
+
+To optimize the performance of this query, appropriate indexing strategies are essential, especially when dealing with large datasets. Here are indexing recommendations for the tables involved:
+
+a.Index on `orders.user_id`:
+Since we're joining the `orders` table with the `users` table using the `user_id` foreign key, indexing this column would speed up the `JOIN` operation.
+
+
+CREATE INDEX idx_orders_user_id ON orders(user_id);
+
+b.Index on `orders.order_date`:
+We are filtering the `orders` table by `order_date` to only include records from the last month. Indexing this column will improve the performance of the `WHERE` clause.
+
+
+CREATE INDEX idx_orders_order_date ON orders(order_date);
+
+
+c. Composite Index on `orders(user_id, order_date)`:
+To optimize both the filtering by `order_date` and the joining on `user_id`, a composite index on `(user_id, order_date)` can be useful.
+ This index allows the database engine to efficiently retrieve records based on both the `user_id` and the `order_date`.
+
+
+CREATE INDEX idx_orders_user_id_order_date ON orders(user_id, order_date);
+
+
+d. Clustered Index (Optional):
+If `user_id` and `order_date` are frequently used in queries together, consider clustering the table by this composite index. 
+Clustering rearranges the actual table data to match the index order, making queries that rely on both columns faster.
+
+e. Index on `users.user_id` (if not already primary key):
+If `user_id` in the `users` table is not already the primary key, ensure it's indexed since it's frequently used in joins.
+
+
+CREATE INDEX idx_users_user_id ON users(user_id);
+

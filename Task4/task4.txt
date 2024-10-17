@@ -1,0 +1,91 @@
+4. Concurrency Handling
+Scenario: You are developing a Node.js application where users can book events. The 
+event booking system should prevent double bookings for the same event.
+Requirements:
+● Describe how you would handle concurrent booking requests to ensure that an event 
+cannot be booked more than once at the same time.
+● Suggest a strategy for implementing this in both the application code and the 
+database schema
+
+ans:
+
+Ensuring that an event cannot be booked more than once simultaneously in a Node.js application requires careful management of concurrent requests and database integrity.
+ Here's how you can achieve this:
+
+1. Handling Concurrent Booking Requests in Application Code
+
+a. Implement a Booking Lock Mechanism:
+Introduce a locking system to prevent multiple bookings for the same event at the same time. This can be achieved by maintaining a record of active bookings and checking for the presence of an active booking before allowing a new one.
+
+b. Utilize Middleware for Concurrency Control:
+In an Express.js application, middleware can be used to manage concurrency.For instance, you can create middleware that checks if a booking is already in progress for the requested event.
+
+
+const express = require('express');
+const app = express();
+
+// Mock database
+let activeBookings = {};
+
+app.use((req, res, next) => {
+  const eventId = req.body.eventId;
+  if (activeBookings[eventId]) {
+    return res.status(409).send('Event is already booked.');
+  }
+  activeBookings[eventId] = true;
+  res.on('finish', () => {
+    delete activeBookings[eventId];
+  });
+  next();
+});
+
+app.post('/book-event', (req, res) => {
+  // Booking logic here
+  res.send('Event booked successfully.');
+});
+
+app.listen(3000, () => console.log('Server running on port 3000.'));
+
+
+
+In this example, the middleware checks if the event is already booked by looking up the `activeBookings` object. 
+If it is, a `409 Conflict` response is sent. Otherwise, it proceeds with the booking and sets a flag indicating the event is booked. 
+Once the response is finished, the flag is cleared to allow future bookings.
+
+ 2. Strategies for Database Schema to Prevent Double Bookings
+
+a. Enforce Unique Constraints:
+Implement a unique constraint on the event identifier in your database to prevent duplicate entries.This ensures that even if multiple requests are processed concurrently,
+ the database will reject duplicate bookings.
+
+For SQL databases, you can define a unique constraint as follows:
+
+
+ALTER TABLE bookings
+ADD CONSTRAINT unique_event_booking
+UNIQUE (event_id);
+
+
+This constraint ensures that each `event_id` appears only once in the `bookings` table, preventing double bookings at the database level.
+
+b. Implement Transactional Locking:
+Utilize database transactions to lock the event record during the booking process, preventing other transactions from modifying it simultaneously.
+This approach is effective in relational databases that support row-level locking.
+
+Here's an example using PostgreSQL:
+
+
+BEGIN;
+SELECT * FROM events WHERE id = $1 FOR UPDATE;
+-- Perform booking operations here
+COMMIT;
+
+
+The `FOR UPDATE` clause locks the selected row, ensuring that no other transaction can modify it until the current transaction is committed.
+
+c. Use Isolation Levels:
+Set the appropriate isolation level for your database transactions to prevent race conditions. For instance, using the `SERIALIZABLE` isolation level can help ensure that transactions are executed in a safe manner, preventing double bookings.
+
+However, be aware that higher isolation levels can impact performance, so it's important to balance consistency requirements with system performance.
+
+By combining these application-level and database-level strategies, you can effectively prevent double bookings in your Node.js event booking system, ensuring data integrity and a smooth user experience.

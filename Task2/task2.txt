@@ -1,0 +1,130 @@
+2. REST API Design
+Scenario: You need to design a REST API endpoint to retrieve user profile information. The 
+endpoint should support fetching a user's profile by their username and include optional 
+query parameters for filtering the results.
+Requirements: v 
+● Define the endpoint URL and HTTP method.
+● Specify the expected request parameters and response structure.
+● Explain how you would handle errors (e.g., user not found) and validate input.
+
+
+1. Endpoint URL and HTTP Method
+
+For retrieving user profile information by username with optional filters, the HTTP method and URL would be:
+
+- HTTP Method: `GET`
+- Endpoint URL: `/api/users/:username`
+
+2. Request Parameters
+
+a. Path Parameter:
+- username (required): The unique identifier for the user whose profile information is being requested.
+
+b. Optional Query Parameters:
+- fields (optional): A comma-separated list of specific fields to include in the response. For example, `fields=name,email,bio` would only return those fields.
+- includePosts (optional, boolean): Whether to include the user's recent posts in the profile data (`true` or `false`).
+- includeFollowers (optional, boolean): Whether to include a list of followers in the response (`true` or `false`).
+
+Example Request:
+
+
+GET /api/users/johndoe?fields=name,email,bio&includePosts=true
+
+
+ 3. Expected Response Structure
+
+The response structure will vary depending on the optional query parameters, but here's an example of the response:
+
+
+{
+  "username": "johndoe",
+  "name": "John Doe",
+  "email": "johndoe@example.com",
+  "bio": "Web Developer and Designer.",
+  "posts": [
+    {
+      "id": 1,
+      "title": "My First Blog Post",
+      "content": "This is my first blog post."
+    }
+  ],
+  "followers": [
+    {
+      "username": "janedoe",
+      "name": "Jane Doe"
+    }
+  ]
+}
+
+
+If the query parameters like `fields`, `includePosts`, or `includeFollowers` are used, the response will be adjusted accordingly:
+
+- Fields filtering: If the `fields` parameter is provided, only those fields will be returned.
+- Optional data: If `includePosts` or `includeFollowers` is `false`, those sections will be omitted.
+
+4. Error Handling and Input Validation
+
+a. Error Handling:
+For errors like "User not found," "Invalid query parameters," or "Internal server errors," appropriate HTTP status codes and error messages should be returned. 
+
+Examples:
+- User Not Found (`404 Not Found`):
+  
+  If the requested user doesn't exist, return:
+  
+  {
+    "error": "User not found"
+  }
+  
+
+  Status Code: `404 Not Found`
+
+- Invalid Query Parameters (`400 Bad Request`):
+  
+  If invalid query parameters are passed, return:
+  
+  {
+    "error": "Invalid query parameter: fields"
+  }
+  
+
+  Status Code: `400 Bad Request`
+
+- Internal Server Error (`500 Internal Server Error`):
+  
+  If something unexpected happens, return:
+
+  {
+    "error": "An unexpected error occurred"
+  }
+  
+  Status Code: `500 Internal Server Error`
+
+b.Input Validation:
+- Username Validation: Ensure that the `username` path parameter is valid (e.g., only allow alphanumeric characters, check if the username exists).
+  
+  For example:
+  
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return res.status(400).json({ error: "Invalid username format" });
+  }
+  
+
+- Query Parameters Validation: Validate the query parameters (e.g., `fields` should only allow valid field names, `includePosts` should be a boolean).
+
+
+  Example validation in Node.js/Express:
+  
+
+  const validFields = ['name', 'email', 'bio', 'posts'];
+  const requestedFields = req.query.fields?.split(',');
+
+  // Check if the requested fields are valid
+  if (requestedFields && !requestedFields.every(field => validFields.includes(field))) {
+    return res.status(400).json({ error: "Invalid fields parameter" });
+  }
+
+  // Validate includePosts query parameter
+  if (req.query.includePosts && !['true', 'false'].includes(req.query.includePosts)) {
+    return res.status(400).json({ error: "Invalid includePosts parameter" });
+  }

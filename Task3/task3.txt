@@ -1,0 +1,48 @@
+
+
+1.TypeScript Feature Used to Specify the Return Type
+
+The TypeScript feature being used to specify the return type of the `getUserInfo` function is Generics with Promises. 
+The function's return type is explicitly defined as a 
+`Promise<{ name: string; age: number; }>`
+, meaning it promises to resolve to an object with two properties: `name` (a string) and `age` (a number).
+
+Here’s the return type specification:
+
+Promise<{ name: string; age: number; }>
+
+
+This indicates that the function is asynchronous and returns a promise that will eventually resolve to an object with `name` and `age` properties.
+
+
+
+2.Modifying the Function to Handle Missing `age` Property
+
+To handle cases where the API response might be missing the `age` property, you can modify the return type to make `age` optional. In TypeScript, optional properties are denoted by adding a `?` after the property name.
+
+1. Update the return type to allow `age` to be optional.
+2. Provide a fallback mechanism in the function to handle when `age` is missing from the response.
+
+Here’s the modified version of the function:
+
+
+function getUserInfo(userId: number): Promise<{ name: string; age?: number }> {
+  return fetch(`/api/users/${userId}`)
+    .then(response => response.json())
+    .then((data: { name: string; age?: number }) => {
+      // Handle case where age might be missing
+      if (!data.age) {
+        data.age = null; // You can set a default or handle this accordingly
+      }
+      return data;
+    })
+    .catch(error => {
+      throw new Error('Error fetching user info');
+    });
+}
+
+ Changes:
+- Optional `age` Property: The return type is now `Promise<{ name: string; age?: number }>` to indicate that `age` is optional (`age?: number`).
+- Handling Missing `age`: In the `.then()` block, the function checks if `age` is missing and sets it to `null` or another default value if needed.
+
+This ensures that the application can gracefully handle cases where the API doesn't return the `age` property without causing runtime errors.

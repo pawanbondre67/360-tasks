@@ -1,0 +1,97 @@
+6. REST API Rate Limiting
+Scenario: You are tasked with implementing rate limiting for a REST API endpoint to 
+prevent abuse. The rate limit should be applied per IP address.
+Requirements:
+● Describe a basic approach to implement rate limiting in a Node.js application.
+● What libraries or strategies would you use to handle rate limiting?
+
+
+
+1. Basic Approach to Implement Rate Limiting in a Node.js Application
+Rate limiting is essential for preventing abuse and protecting your API from being overwhelmed by too many requests
+ from the same user or IP address. A basic approach to implement rate limiting in a Node.js application is to restrict the number
+of requests an IP address can make to an API within a given timeframe (e.g., 100 requests per minute).
+
+Here's the basic approach:
+
+1.Track Requests Per IP: You need to track how many requests an IP address makes within a specific time window.
+
+2.Limit Exceeded: If the number of requests from an IP exceeds the defined threshold, the API should respond with a rate limit error, typically an HTTP status code 429 (Too Many Requests).
+
+3.Reset After Time Window: The counter for each IP should reset after the defined time window has passed (e.g., after 1 minute).
+
+2. Libraries and Strategies for Handling Rate Limiting
+1. Using express-rate-limit
+One of the most popular libraries to implement rate limiting in a Node.js/Express environment is express-rate-limit. It provides a simple way to set rate limits based on the IP address.
+
+const express = require('express');
+const rateLimit = require('express-rate-limit');
+const app = express();
+
+// Define the rate limiter middleware
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000,  // 1 minute
+  max: 100,                 // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again after a minute', // Custom message
+  headers: true,            // Adds X-RateLimit headers to responses
+});
+
+// Apply the rate limiter to all API routes
+app.use('/api', limiter);
+
+// Define API routes
+app.get('/api/products', (req, res) => {
+  res.json({ message: "Welcome to the products API!" });
+});
+
+const PORT = 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+In this example:
+
+windowMs: The time window for which the rate limit applies (1 minute in this case).
+max: The maximum number of requests allowed from a single IP within the time window (100 requests).
+message: Custom message returned when the rate limit is exceeded.
+headers: Adds rate limit information to the response headers (X-RateLimit-Limit, X-RateLimit-Remaining, etc.).
+
+
+2. Using Redis with express-rate-limit for Distributed Applications
+If your application is distributed across multiple servers (e.g., load-balanced across different instances), you need a shared
+ store to track rate limits across all instances. Redis is a great solution for this since it’s fast and stores key-value pairs in memory.
+
+You can use express-rate-limit in combination with Redis as the storage backend.
+
+
+const Redis = require('ioredis');
+const RedisStore = require('rate-limit-redis');
+
+const redisClient = new Redis();  // Connect to your Redis instance
+
+const limiter = rateLimit({
+  store: new RedisStore({
+    client: redisClient,
+  }),
+  windowMs: 1 * 60 * 1000,  // 1 minute
+  max: 100,                 // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests, please try again later',
+});
+
+3. Token Bucket Algorithm (Leaky Bucket)
+For APIs that need more sophisticated traffic control, you can implement a Token Bucket or Leaky Bucket algorithm using libraries like rate-limiter-flexible.
+
+This method allows a "burst" of requests but gradually "leaks" requests out, ensuring smooth rate limiting over time.
+
+
+4.IP Blacklisting and Whitelisting
+You can also create custom logic to whitelist or blacklist certain IP addresses. For example, administrative IPs can be whitelisted to bypass the rate limiter, 
+or malicious IPs can be blacklisted to immediately block access.
+
+
+const whitelist = ['123.45.67.89']; // Example whitelisted IP
+
+app.use((req, res, next) => {
+  if (whitelist.includes(req.ip)) {
+    return next(); // Skip rate limiting for whitelisted IPs
+  }
+  limiter(req, res, next); // Apply rate limiting for other IPs
+});
